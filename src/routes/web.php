@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WalletController;
 use App\Models\Transaction;
+use App\Http\Controllers\TransferController;
 use Illuminate\Support\Facades\DB;
 
 
@@ -25,5 +26,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/deposit', [WalletController::class, 'deposit'])->name('wallet.deposit');
     // Outras rotas virão
+
+      // Transferências
+    Route::get('/wallet/transfer', [TransferController::class, 'create'])->name('wallet.transfer.form');
+    Route::post('/wallet/transfer', [TransferController::class, 'store'])->name('wallet.transfer');
 });
 require __DIR__.'/auth.php';

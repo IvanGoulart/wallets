@@ -10,9 +10,10 @@ interface WalletRepositoryInterface
 
     public function deposit(int $userId, float $amount): bool;
 
-    public function withdraw(User $user, float $amount): bool;
+    public function withdraw(int $userId, float $amount): bool;
 
-    public function transfer(User $sender, User $recipient, float $amount): bool;
+    public function transfer(int $senderId, int $recipientId, float $amount): bool;
 
-    public function getTransactions(User $user, int $perPage = 10);
+    public function getTransactions(int $userId, int $perPage = 10);
+
 }

@@ -38,53 +38,70 @@ class WalletRepository implements WalletRepositoryInterface
     }
 
 
-    public function withdraw(User $user, float $amount): bool
-    {
-        if (!$user->wallet || $user->wallet->balance < $amount) {
-            return false;
-        }
+public function withdraw(int $userId, float $amount): bool
+{
+    $wallet = \App\Models\Wallet::where('user_id', $userId)->first();
 
-        $user->wallet->balance -= $amount;
-        return $user->wallet->save();
+    if (!$wallet || $wallet->balance < $amount) {
+        return false;
     }
 
-    public function transfer(User $sender, User $recipient, float $amount): bool
-    {
-        if ($sender->id === $recipient->id) {
-            return false;
-        }
+    $wallet->balance -= $amount;
+    return $wallet->save();
+}
 
-        DB::beginTransaction();
-        try {
-            if (!$this->withdraw($sender, $amount)) {
-                DB::rollBack();
-                return false;
-            }
 
-            $this->deposit($recipient, $amount);
+public function transfer(int $senderId, int $recipientId, float $amount): bool
+{
+    if ($senderId === $recipientId) {
+        return false; // não permite auto-transferência
+    }
 
-            // Registrar transações (opcional)
-            $sender->transactions()->create([
-                'type' => 'transfer_out',
-                'amount' => $amount,
-                'description' => "Transferência para {$recipient->email}"
-            ]);
-
-            $recipient->transactions()->create([
-                'type' => 'transfer_in',
-                'amount' => $amount,
-                'description' => "Recebido de {$sender->email}"
-            ]);
-
-            DB::commit();
-            return true;
-        } catch (\Exception $e) {
+    DB::beginTransaction();
+    try {
+        // Sacar do remetente
+        if (!$this->withdraw($senderId, $amount)) {
             DB::rollBack();
             return false;
         }
+
+        // Depositar no destinatário
+        if (!$this->deposit($recipientId, $amount)) {
+            DB::rollBack();
+            return false;
+        }
+
+        // Registrar transações
+        \App\Models\Transaction::create([
+            'sender_id' => $senderId,
+            'receiver_id' => $recipientId,
+            'amount' => $amount,
+            'type' => 'transfer',
+            'status' => 'completed',
+        ]);
+
+        \App\Models\Transaction::create([
+            'sender_id' => $senderId,
+            'receiver_id' => $recipientId,
+            'amount' => $amount,
+            'type' => 'transfer',
+            'status' => 'completed',
+        ]);
+
+        DB::commit();
+        return true;
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return false;
     }
-    public function getTransactions(User $user, int $perPage = 10)
-    {
-        return $user->transactions()->orderBy('created_at', 'desc')->paginate($perPage);
-    }
+}
+
+public function getTransactions(int $userId, int $perPage = 10)
+{
+    return \App\Models\Transaction::where('sender_id', $userId)
+        ->orWhere('receiver_id', $userId)
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage);
+}
+
 }

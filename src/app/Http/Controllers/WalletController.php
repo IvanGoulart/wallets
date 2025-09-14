@@ -19,7 +19,7 @@ class WalletController extends Controller
     {
         return view('wallet.index', [
             'balance' => $this->walletRepository->getBalance(auth()->user()),
-            'transactions' => $this->walletRepository->getTransactions(auth()->user(), 10),
+            'transactions' => $this->walletRepository->getTransactions(auth()->id(), 10),
         ]);
     }
 
