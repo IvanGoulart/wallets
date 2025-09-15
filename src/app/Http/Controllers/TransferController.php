@@ -38,10 +38,14 @@ class TransferController extends Controller
         $recipientId = (int) $request->recipient_id;
         $amount = (float) $request->amount;
 
-        if ($this->walletRepository->transfer($senderId, $recipientId, $amount)) {
-            return redirect()->route('wallet.index')->with('success', 'Transferência realizada com sucesso!');
+        // Executa a transferência e recebe o resultado com a mensagem
+        $result = $this->walletRepository->transfer($senderId, $recipientId, $amount);
+
+        if ($result['success']) {
+            return redirect()->route('wallet.index')->with('success', $result['message']);
         }
 
-        return back()->withErrors(['error' => 'Falha ao realizar a transferência.']);
+        return back()->withErrors(['error' => $result['message']]);
     }
+
 }

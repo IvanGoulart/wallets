@@ -8,10 +8,15 @@ use App\Repositories\Contracts\WalletRepositoryInterface;
 use App\Models\Transaction;
 class WalletRepository implements WalletRepositoryInterface
 {
-    public function getBalance(User $user): float
+    public function getBalance(int $userId): float
     {
-        return $user->wallet ? $user->wallet->balance : 0;
+        $user = \App\Models\User::find($userId);
+
+        return $user && $user->wallet
+            ? $user->wallet->balance
+            : 0.0;
     }
+
 
     public function deposit(int $userId, float $amount): bool
     {
@@ -38,70 +43,99 @@ class WalletRepository implements WalletRepositoryInterface
     }
 
 
-public function withdraw(int $userId, float $amount): bool
-{
-    $wallet = \App\Models\Wallet::where('user_id', $userId)->first();
+    public function withdraw(int $userId, float $amount): bool
+    {
+        $wallet = \App\Models\Wallet::where('user_id', $userId)->first();
 
-    if (!$wallet || $wallet->balance < $amount) {
-        return false;
+        if (!$wallet || $wallet->balance < $amount) {
+            return false;
+        }
+
+        $wallet->balance -= $amount;
+        return $wallet->save();
     }
 
-    $wallet->balance -= $amount;
-    return $wallet->save();
-}
-
-
-public function transfer(int $senderId, int $recipientId, float $amount): bool
+    public function transfer(int $senderId, int $recipientId, float $amount): array
 {
     if ($senderId === $recipientId) {
-        return false; // não permite auto-transferência
+        return ['success' => false, 'message' => 'Não é possível transferir para si mesmo.'];
+    }
+
+    $sender = User::findOrFail($senderId);
+    $recipient = User::findOrFail($recipientId);
+
+    // Verifica saldo
+    if (!$sender->wallet || $sender->wallet->balance < $amount) {
+        return ['success' => false, 'message' => 'Saldo insuficiente para realizar a transferência.'];
     }
 
     DB::beginTransaction();
+
     try {
         // Sacar do remetente
-        if (!$this->withdraw($senderId, $amount)) {
-            DB::rollBack();
-            return false;
-        }
+        $sender->wallet->balance -= $amount;
+        $sender->wallet->save();
 
         // Depositar no destinatário
-        if (!$this->deposit($recipientId, $amount)) {
-            DB::rollBack();
-            return false;
+        if (!$recipient->wallet) {
+            $recipient->wallet()->create(['balance' => $amount]);
+        } else {
+            $recipient->wallet->balance += $amount;
+            $recipient->wallet->save();
         }
 
-        // Registrar transações
-        \App\Models\Transaction::create([
+        // Registrar transação
+        Transaction::create([
             'sender_id' => $senderId,
             'receiver_id' => $recipientId,
             'amount' => $amount,
             'type' => 'transfer',
-            'status' => 'completed',
-        ]);
-
-        \App\Models\Transaction::create([
-            'sender_id' => $senderId,
-            'receiver_id' => $recipientId,
-            'amount' => $amount,
-            'type' => 'transfer',
-            'status' => 'completed',
+            'status' => 'completed'
         ]);
 
         DB::commit();
-        return true;
+        return ['success' => true, 'message' => 'Transferência realizada com sucesso!'];
+
     } catch (\Exception $e) {
         DB::rollBack();
-        return false;
+        \Log::error('Erro na transferência: ' . $e->getMessage());
+        return ['success' => false, 'message' => 'Ocorreu um erro ao realizar a transferência.'];
     }
 }
 
+
 public function getTransactions(int $userId, int $perPage = 10)
 {
-    return \App\Models\Transaction::where('sender_id', $userId)
+    $transactions = \App\Models\Transaction::where('sender_id', $userId)
         ->orWhere('receiver_id', $userId)
         ->orderBy('created_at', 'desc')
         ->paginate($perPage);
+
+    // Adiciona a direção para cada transação
+    $transactions->getCollection()->transform(function ($t) use ($userId) {
+        if ($t->type === 'deposit') {
+            $t->direction = 'Depósito';
+        } elseif ($t->type === 'transfer') {
+            $t->direction = $t->sender_id === $userId ? 'Enviado' : 'Recebido';
+        } else {
+            $t->direction = $t->type; // outros tipos, se existirem
+        }
+        return $t;
+    });
+
+    return $transactions;
 }
 
+    public function getTotalBalance(int $userId): float
+    {
+        $in = Transaction::where('receiver_id', $userId)
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        $out = Transaction::where('sender_id', $userId)
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        return $in - $out;
+    }
 }

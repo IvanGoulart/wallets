@@ -14,26 +14,34 @@ class WalletController extends Controller
         $this->walletRepository = $walletRepository;
     }
 
-
     public function index()
     {
+        $userId = auth()->id();
+
         return view('wallet.index', [
-            'balance' => $this->walletRepository->getBalance(auth()->user()),
-            'transactions' => $this->walletRepository->getTransactions(auth()->id(), 10),
+            'balance' => $this->walletRepository->getBalance($userId),
+            'totalBalance' => $this->walletRepository->getTotalBalance($userId), // saldo via transações
+            'transactions' => $this->walletRepository->getTransactions($userId, 10),
         ]);
     }
 
     public function deposit(Request $request)
     {
-        $request->validate(['amount' => 'required|numeric|min:0.01']);
-            $amount = $request->input('amount'); // <- pegar o valor do form
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01'
+        ]);
 
+        $userId = auth()->id();
+        $amount = $request->input('amount');
 
-
-        if ($this->walletRepository->deposit(auth()->id(), $amount)) {
-            return redirect()->route('wallet.index')->with('success', 'Depósito realizado!');
+        if ($this->walletRepository->deposit($userId, $amount)) {
+            return redirect()
+                ->route('wallet.index')
+                ->with('success', 'Depósito realizado!');
         }
 
-        return back()->with('error', 'Erro no depósito, tente novamente.');
+        return back()->withErrors([
+            'error' => 'Erro no depósito, tente novamente.'
+        ]);
     }
 }

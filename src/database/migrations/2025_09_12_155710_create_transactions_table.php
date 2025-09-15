@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('sender_id')->nullable()->constrained('users');
             $table->foreignId('receiver_id')->nullable()->constrained('users');
             $table->decimal('amount', 15, 2);
-            $table->enum('type', ['deposit', 'transfer', 'reversal']);
+            $table->enum('type', ['deposit', 'transfer', 'transfer_in', 'transfer_out', 'reversal']);
             $table->foreignId('reversed_transaction_id')->nullable()->constrained('transactions'); // Para ligar reversões
             $table->enum('status', ['pending', 'completed', 'reversed', 'failed'])->default('completed');
             $table->timestamps();

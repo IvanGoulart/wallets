@@ -45,10 +45,14 @@
                 @forelse($transactions as $transaction)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2 border-b">{{ $transaction->id }}</td>
-                        <td class="px-4 py-2 border-b">{{ $transaction->type }}</td>
+                        <td class="px-4 py-2 border-b">
+                            {{ $transaction->direction }}
+                        </td>
                         <td class="px-4 py-2 border-b">R$ {{ number_format($transaction->amount, 2, ',', '.') }}</td>
                         <td class="px-4 py-2 border-b">{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
                     </tr>
+
+
                 @empty
                     <tr>
                         <td colspan="4" class="px-4 py-2 text-center text-gray-500">Nenhuma transação encontrada.</td>
@@ -56,6 +60,14 @@
                 @endforelse
             </tbody>
         </table>
+        <!-- Paginação -->
+        <div class="mt-4">
+            {{ $transactions->links() }}
+        </div>
+        <div class="mb-4 p-4 rounded bg-gray-100 text-gray-800">
+            <p><strong>Saldo atual:</strong> R$ {{ number_format($balance, 2, ',', '.') }}</p>
+            <p><strong>Saldo consolidado (entradas - saídas):</strong> R$ {{ number_format($totalBalance, 2, ',', '.') }}</p>
+        </div>
     </div>
 </div>
 @endsection
