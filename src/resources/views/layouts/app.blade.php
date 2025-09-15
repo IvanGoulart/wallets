@@ -26,9 +26,11 @@
                     </div>
                 </header>
             @endisset
-        <main class="py-4">
-            @yield('content')
-        </main>
+
+            <!-- Page Content -->
+            <main>
+                {{ $slot }}
+            </main>
         </div>
     </body>
 </html>
