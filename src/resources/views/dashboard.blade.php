@@ -45,7 +45,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M9 17v-6h4v6h5V9h-3L12 4 7 9H4v8z" />
                     </svg>
-                    <span class="ml-4 text-lg font-medium text-gray-700">Relatório Consolidado</span>
+                    <span class="ml-4 text-lg font-medium text-gray-700">Relatório Datalhado</span>
                 </a>
 
                 <!-- Perfil -->
