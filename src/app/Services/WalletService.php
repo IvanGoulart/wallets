@@ -14,11 +14,9 @@ class WalletService
 
     public function deposit(User $user, float $amount): bool
     {
-        $wallet = $this->walletRepository->createWalletIfNotExists($user);
-
         DB::beginTransaction();
         try {
-            $this->walletRepository->incrementBalance($wallet, $amount);
+            $this->walletRepository->incrementBalance($user, $amount);
 
             $this->walletRepository->createTransaction([
                 'sender_id'   => null,
@@ -35,6 +33,7 @@ class WalletService
             return false;
         }
     }
+
 
     public function withdraw(User $user, float $amount): bool
     {
@@ -77,8 +76,8 @@ class WalletService
             ]);
 
             $this->walletRepository->createTransaction([
-                'sender_id' => $senderId,
-                'receiver_id' => $recipientId,
+                'sender_id' => $recipientId,
+                'receiver_id' => $senderId,
                 'amount' => $amount,
                 'type' => 'deposit',
                 'status' => 'completed',
@@ -94,5 +93,10 @@ class WalletService
             \Log::error('Erro na transferência: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Erro ao realizar a transferência.'];
         }
+    }
+
+        public function getUserDetailedReport(User $user, int $perPage = 20)
+    {
+        return $this->walletRepository->getDetailedReport($user, $perPage);
     }
 }

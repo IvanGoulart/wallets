@@ -30,6 +30,12 @@ class WalletController extends Controller
         ]);
     }
 
+    /**
+     * Realiza um depósito na carteira do usuário
+     *
+     * @param  mixed $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function deposit(Request $request)
     {
         $request->validate([
@@ -50,6 +56,12 @@ class WalletController extends Controller
         ]);
     }
 
+    /**
+     * Realiza um saque na carteira do usuário
+     *
+     * @param  mixed $request
+     * @return void
+     */
     public function withdraw(Request $request)
     {
         $request->validate([
@@ -70,6 +82,12 @@ class WalletController extends Controller
         ]);
     }
 
+    /**
+     * Realiza uma transferência entre dois usuários
+     *
+     * @param  mixed $request
+     * @return void
+     */
     public function transfer(Request $request)
     {
         $request->validate([

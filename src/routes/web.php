@@ -30,8 +30,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/wallet/transfer', [TransferController::class, 'create'])->name('wallet.transfer.form');
     Route::post('/wallet/transfer', [TransferController::class, 'store'])->name('wallet.transfer');
     //desfazer transação
-    Route::patch('/wallet/transaction/{transaction}/revert', [TransferController::class, 'revertTransaction'])
+    Route::patch('/wallet/transaction/revert/{transaction}', [TransferController::class, 'revert'])
     ->name('wallet.transaction.revert');
+    // Relatório detalhado de transações do usuário
+    Route::get('/wallet/detailed-report', [TransferController::class, 'detailedReport'])
+        ->name('wallet.detailed_report');
 });
 
 

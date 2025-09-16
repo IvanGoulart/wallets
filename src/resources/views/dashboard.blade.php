@@ -37,8 +37,8 @@
                 </a>
 
                 <!-- Relatórios -->
-                <a href="{{ route('wallet.index') }}?relatorio=1"
-                   class="flex items-center p-6 bg-white rounded-lg shadow hover:bg-gray-50 transition">
+                <a href="{{ route('wallet.detailed_report', ['relatorio' => 1]) }}"
+                    class="flex items-center p-6 bg-white rounded-lg shadow hover:bg-gray-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          class="h-10 w-10 text-yellow-500"
                          fill="none" viewBox="0 0 24 24" stroke="currentColor">
