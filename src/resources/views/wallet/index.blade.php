@@ -73,7 +73,6 @@
             <!-- Saldo -->
             <div class="mb-4 p-4 rounded bg-gray-100 text-gray-800">
                 <p><strong>Saldo atual:</strong> R$ {{ number_format($balance, 2, ',', '.') }}</p>
-                <p><strong>Saldo consolidado (entradas - saídas):</strong> R$ {{ number_format($totalBalance, 2, ',', '.') }}</p>
             </div>
         </div>
     </div>

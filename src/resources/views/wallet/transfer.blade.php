@@ -67,6 +67,7 @@
                         <th class="px-4 py-2 border-b text-left text-gray-600">Valor</th>
                         <th class="px-4 py-2 border-b text-left text-gray-600">Descrição</th>
                         <th class="px-4 py-2 border-b text-left text-gray-600">Data</th>
+                        <th class="px-4 py-2 border-b text-left text-gray-600">Reverter</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -85,6 +86,19 @@
                             <td class="px-4 py-2 border-b">R$ {{ number_format($transaction->amount, 2, ',', '.') }}</td>
                             <td class="px-4 py-2 border-b">{{ $transaction->description }}</td>
                             <td class="px-4 py-2 border-b">{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="px-4 py-2 border-b">
+                                @if($transaction->type === 'transfer' && $transaction->status !== 'reversed')
+
+                                    <form action="{{ route('wallet.transaction.revert', $transaction) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit"
+                                                class="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500 transition">
+                                            Desfazer
+                                        </button>
+                                    </form>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>

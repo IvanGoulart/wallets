@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    protected $fillable = ['sender_id', 'receiver_id', 'amount', 'type'];
+    protected $fillable = ['sender_id', 'receiver_id', 'amount', 'type','description', 'status'];
 
     public function sender()
     {
@@ -15,5 +15,11 @@ class Transaction extends Model
     public function receiver()
     {
         return $this->belongsTo(User::class, 'receiver_id');
+    }
+
+    // Relacionamento com usuário
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

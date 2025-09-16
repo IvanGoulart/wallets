@@ -1,51 +1,29 @@
 <?php
-
 namespace App\Repositories;
 
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use App\Repositories\Contracts\WalletRepositoryInterface;
+use App\Models\Wallet;
 use App\Models\Transaction;
+use App\Repositories\Contracts\WalletRepositoryInterface;
+use Illuminate\Support\Facades\DB;
+
 class WalletRepository implements WalletRepositoryInterface
 {
-    public function getBalance(int $userId): float
+    public function getBalance(User $user): float
     {
-        $user = \App\Models\User::find($userId);
-
-        return $user && $user->wallet
-            ? $user->wallet->balance
-            : 0.0;
+        return Wallet::where('user_id', $user->id)->value('balance') ?? 0.0;
     }
 
-
-    public function deposit(int $userId, float $amount): bool
+    public function deposit(User $user, float $amount): bool
     {
-        $user = User::findOrFail($userId);
-
-        if (!$user->wallet) {
-            $user->wallet()->create(['balance' => 0]);
-        }
-
-        $user->wallet->balance += $amount;
-        $saved = $user->wallet->save();
-
-        if ($saved) {
-            Transaction::create([
-                'sender_id' => null,
-                'receiver_id' => $userId,
-                'amount' => $amount,
-                'type' => 'deposit',
-                'status' => 'completed'
-            ]);
-        }
-
-        return $saved;
+        $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
+        $wallet->balance += $amount;
+        return $wallet->save();
     }
 
-
-    public function withdraw(int $userId, float $amount): bool
+    public function withdraw(User $user, float $amount): bool
     {
-        $wallet = \App\Models\Wallet::where('user_id', $userId)->first();
+        $wallet = Wallet::where('user_id', $user->id)->first();
 
         if (!$wallet || $wallet->balance < $amount) {
             return false;
@@ -56,86 +34,45 @@ class WalletRepository implements WalletRepositoryInterface
     }
 
     public function transfer(int $senderId, int $recipientId, float $amount): array
-{
-    if ($senderId === $recipientId) {
-        return ['success' => false, 'message' => 'Não é possível transferir para si mesmo.'];
-    }
-
-    $sender = User::findOrFail($senderId);
-    $recipient = User::findOrFail($recipientId);
-
-    // Verifica saldo
-    if (!$sender->wallet || $sender->wallet->balance < $amount) {
-        return ['success' => false, 'message' => 'Saldo insuficiente para realizar a transferência.'];
-    }
-
-    DB::beginTransaction();
-
-    try {
-        // Sacar do remetente
-        $sender->wallet->balance -= $amount;
-        $sender->wallet->save();
-
-        // Depositar no destinatário
-        if (!$recipient->wallet) {
-            $recipient->wallet()->create(['balance' => $amount]);
-        } else {
-            $recipient->wallet->balance += $amount;
-            $recipient->wallet->save();
-        }
-
-        // Registrar transação
-        Transaction::create([
-            'sender_id' => $senderId,
-            'receiver_id' => $recipientId,
-            'amount' => $amount,
-            'type' => 'transfer',
-            'status' => 'completed'
-        ]);
-
-        DB::commit();
-        return ['success' => true, 'message' => 'Transferência realizada com sucesso!'];
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Erro na transferência: ' . $e->getMessage());
-        return ['success' => false, 'message' => 'Ocorreu um erro ao realizar a transferência.'];
-    }
-}
-
-
-public function getTransactions(int $userId, int $perPage = 10)
-{
-    $transactions = \App\Models\Transaction::where('sender_id', $userId)
-        ->orWhere('receiver_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->paginate($perPage);
-
-    // Adiciona a direção para cada transação
-    $transactions->getCollection()->transform(function ($t) use ($userId) {
-        if ($t->type === 'deposit') {
-            $t->direction = 'Depósito';
-        } elseif ($t->type === 'transfer') {
-            $t->direction = $t->sender_id === $userId ? 'Enviado' : 'Recebido';
-        } else {
-            $t->direction = $t->type; // outros tipos, se existirem
-        }
-        return $t;
-    });
-
-    return $transactions;
-}
-
-    public function getTotalBalance(int $userId): float
     {
-        $in = Transaction::where('receiver_id', $userId)
-            ->where('status', 'completed')
-            ->sum('amount');
+        return DB::transaction(function () use ($senderId, $recipientId, $amount) {
+            $sender = User::find($senderId);
+            $recipient = User::find($recipientId);
 
-        $out = Transaction::where('sender_id', $userId)
-            ->where('status', 'completed')
-            ->sum('amount');
+            if (!$sender || !$recipient) {
+                return ['success' => false, 'message' => 'Usuário(s) não encontrado(s)'];
+            }
 
-        return $in - $out;
+            if (!$this->withdraw($sender, $amount)) {
+                return ['success' => false, 'message' => 'Saldo insuficiente'];
+            }
+
+            if (!$this->deposit($recipient, $amount)) {
+                throw new \Exception("Falha ao depositar no recebedor");
+            }
+
+            // Registrar transação
+            Transaction::create([
+                'sender_id'    => $senderId,
+                'receiver_id' => $recipientId,
+                'amount'       => $amount,
+                'type'         => 'transfer',
+            ]);
+
+            return ['success' => true, 'message' => 'Transferência realizada com sucesso'];
+        });
+    }
+
+    public function getTransactions(User $user, int $perPage = 10)
+    {
+        return Transaction::where('sender_id', $user->id)
+            ->orWhere('receiver_id', $user->id)
+            ->latest()
+            ->paginate($perPage);
+    }
+
+    public function getTotalBalance(User $user): float
+    {
+        return Wallet::where('user_id', $user->id)->sum('balance');
     }
 }

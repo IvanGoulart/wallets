@@ -25,10 +25,14 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/deposit', [WalletController::class, 'deposit'])->name('wallet.deposit');
-    // Outras rotas virão
 
       // Transferências
     Route::get('/wallet/transfer', [TransferController::class, 'create'])->name('wallet.transfer.form');
     Route::post('/wallet/transfer', [TransferController::class, 'store'])->name('wallet.transfer');
+    //desfazer transação
+    Route::patch('/wallet/transaction/{transaction}/revert', [TransferController::class, 'revertTransaction'])
+    ->name('wallet.transaction.revert');
 });
+
+
 require __DIR__.'/auth.php';
