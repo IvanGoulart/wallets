@@ -11,7 +11,6 @@ MySQL / MariaDB
  ou outro banco compatível
 
 Node.js e NPM
- (se houver front-end com build)
 
 Git
 
